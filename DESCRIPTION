@@ -33,5 +33,6 @@ Imports:
     tidyr,
     ggplot2,
     viridis,
-    cowplot
+    cowplot,
+    reticulate
 Depends: R (>= 4.0.0) 

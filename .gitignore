@@ -17,3 +17,6 @@ ehthumbs.db
 Thumbs.db
 packrat/lib*/
 .lintr
+
+# Larger files #
+*.nc*

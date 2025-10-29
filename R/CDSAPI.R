@@ -73,7 +73,7 @@ Register.Credentials <- function(API_User, API_Key) {
 #'
 Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariable,
                          QueryTimes, QueryExtent, QueryFormat, Dir = getwd(), verbose = TRUE,
-                         API_User, API_Key, TimeOut = 36000, FIterStart = 1) {
+                         API_User, API_Key, TimeOut = 36000, FIterStart = 1, DEDL = FALSE) {
   #' Make list of CDS Requests
   Requests_ls <- lapply(1:length(QueryTimeWindows), FUN = function(requestID) {
     FName <- paste("TEMP", QueryVariable, stringr::str_pad(FIterStart + requestID - 1, 5, "left", "0"), sep = "_")
@@ -128,6 +128,12 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
   if (verbose) {
     print("## Staging CDS Requests")
   }
+  if (DEDL) {
+    Requests_ls <- DEDL.order(Requests_ls, API_Key, API_User, verbose)
+    return(Requests_ls)
+  }
+
+  Register.Credentials(API_User, API_Key)
   for (requestID in 1:length(Requests_ls)) { ## looping over CDS requests
     if (verbose) {
       print(names(Requests_ls)[requestID])
@@ -135,6 +141,7 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
     if (class(Requests_ls[[requestID]]) == "logical") {
       next()
     }
+
     API_request <- ecmwfr::wf_request(
       user = API_User,
       request = Requests_ls[[requestID]],
@@ -169,7 +176,7 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
 #'
 #' @seealso \code{\link{Register.Credentials}}, \code{\link{Make.Request}}.
 #'
-Execute.Requests <- function(Requests_ls, Dir, API_User, API_Key, TryDown, verbose = TRUE) { # nolint: cyclocomp_linter.
+Execute.Requests <- function(Requests_ls, Dir, API_User, API_Key, TryDown, verbose = TRUE, DEDL = FALSE) { # nolint: cyclocomp_linter.
   if (verbose) {
     print("## Listening for CDS Requests")
   }
@@ -185,7 +192,14 @@ Execute.Requests <- function(Requests_ls, Dir, API_User, API_Key, TryDown, verbo
       }
       next()
     }
+
     API_request <- Requests_ls[[requestID]]$API_request
+
+    if (DEDL) {
+      filename <- Requests_ls[[requestID]]$target
+      DEDL.download(API_request, filename, API_User, API_Key)
+      return()
+    }
 
     ## old CDS
     if (packageVersion("ecmwfr") < "2.0.0") {

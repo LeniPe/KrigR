@@ -160,7 +160,8 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
                        Cores = 1, # parallelisation
                        verbose = TRUE, # verbosity
                        Keep_Raw = FALSE,
-                       closeConnections = TRUE) {
+                       closeConnections = TRUE,
+                       DEDL = FALSE) {
   ## Catching Most Frequent Issues ===============
   if (closeConnections) {
     on.exit(closeAllConnections())
@@ -316,8 +317,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   if (verbose) {
     print("Executing request - Notice that time windows may vary slightly at this step due to timezone conversions. This will be resolved automatically.")
   }
-  #--- API credentials
-  Register.Credentials(API_User, API_Key)
+
 
   if (verbose && length(QueryCheck) > 1) {
     message(
@@ -339,11 +339,14 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
       QueryTimes, QueryExtent, MetaCheck_ls$QueryFormat,
       Dir,
       verbose = TRUE, API_User, API_Key,
-      TimeOut = TimeOut, FIterStart = (x - 1) * 20 + 1
+      TimeOut = TimeOut, FIterStart = (x - 1) * 20 + 1,
+      DEDL = DEDL
     )
+
+
     ## work an on.exit in here to allow restarting downloads themselves without new queries
     #--- Execution of requests
-    Execute.Requests(Requests_ls, Dir, API_User, API_Key, TryDown, verbose = TRUE)
+    Execute.Requests(Requests_ls, Dir, API_User, API_Key, TryDown, verbose = TRUE, DEDL = DEDL)
 
     #---- Return of request list for further tracking
     Requests_ls

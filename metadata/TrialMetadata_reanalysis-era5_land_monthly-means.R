@@ -8,7 +8,7 @@ ERA5-Land provides a consistent view of the water and energy cycles at surface l
 
 The data presented here is a post-processed subset of the full ERA5-Land dataset. Monthly-mean averages have been pre-calculated to facilitate many applications requiring easy and fast access to the data, when sub-monthly fields are not required.",
   TResolution = "month",
-  TStep = 1,
+  TStep = c(1,24),
   TStart = as.POSIXct("1950-01-01 01:00", tz = "UTC"),
   TEnd = "Present; Lag = 3 month",
   Projection = "WGS84 (EPSG: 4326)",

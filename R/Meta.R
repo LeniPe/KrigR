@@ -52,11 +52,11 @@ Meta.List <- function(URL = "https://raw.githubusercontent.com/ErikKusch/KrigR/D
 #' Meta.Read()
 #'
 #' @export
-Meta.Read <- function(URL = "https://raw.githubusercontent.com/ErikKusch/KrigR/Development/metadata", ## change this to github repo for these data once ready
+Meta.Read <- function(URL = "https://raw.githubusercontent.com/LeniPe/KrigR/add-alternative-data-source-DEDL/metadata/", ## change this to github repo for these data once ready
                       dataset = "reanalysis-era5-land") {
   load(url(
     paste0(
-      "https://github.com/ErikKusch/KrigR/blob/Development/metadata/",
+      URL,
       dataset,
       ".RData?raw=true"
     )

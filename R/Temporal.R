@@ -53,75 +53,87 @@ Make.UTC <- function(DatesVec = NULL) {
 #'                     TChunkSize = 12000)
 #'
 Make.RequestWindows <- function(Dates_df, BaseTResolution, BaseTStep, BaseTStart, TChunkSize, DataSet) {
-  ## reformat input
-  DateStart <- Dates_df$UTC[1]
-  DateStop <- Dates_df$UTC[2]
-  if (BaseTResolution == "month") {
-    DateStart <- as.POSIXct(paste0(format(DateStart, "%Y-"), "01-01 00:00"), tz = "UTC") # ensure that first of first month in first queried year is used for sequence creation to avoid month skips
-    DateStop <- as.POSIXct(paste0(format(DateStop, "%Y-"), "12-31 23:00"), tz = "UTC") # ensure that last of last month in last queried year is used for sequence creation to avoid month skips
+  # Normalize start / stop as POSIXct UTC (Dates_df$UTC expected)
+  DateStart <- as.POSIXct(Dates_df$UTC[1], tz = "UTC")
+  DateStop  <- as.POSIXct(Dates_df$UTC[2], tz = "UTC")
+
+  # Basic validation of supported resolutions
+  if (!(BaseTResolution %in% c("hour", "month"))) {
+    stop("Make.RequestWindows: BaseTResolution must be 'hour' or 'month'.")
   }
-  
-  ## checking chunksize specification
+
+  # TChunkSize must be a multiple of BaseTStep (so chunking produces whole number of layers)
   if ((TChunkSize / BaseTStep) %% 1 != 0) {
     stop(
       "Please specify a TChunkSize (currently = ", TChunkSize,
-      ") that is a multiple of the base temporal resolution of the data you queried from CDS (curently = ", BaseTStep, ")."
+      ") that is a multiple of the base temporal subdivision (BaseTStep = ", BaseTStep, ")."
     )
   }
-  
-  ## checking alignment of queried data with raw data
-  if (BaseTResolution == "hour" && BaseTStep != 24) {
-    # when we are pulling from non-1-hourly records, check whether specified start-date aligns with date layers in raw data
-    StartCheck <- difftime(DateStart, Meta.QuickFacts(dataset = DataSet)$TStart, units = "hour") / BaseTStep
-    EndCheck <- difftime(DateStop, Meta.QuickFacts(dataset = DataSet)$TStart, units = "hour") / BaseTStep
-    AlignCheck <- (as.numeric(StartCheck) %% 1 == 0 || as.numeric(EndCheck) %% 1 == 0)
-  }
-  
-  ## making query time call
-  if (!(BaseTResolution %in% c("hour", "month"))) {
-    stop("Non-hour or -month base resolutions not supported yet")
-  }
+
+  # --- MONTH CASE -----------------------------------------------------------
+  if (BaseTResolution == "month") {
+    # Align DateStart to first day of its month and DateStop to first day of last month
+    DateStart_mon <- as.POSIXct(format(DateStart, "%Y-%m-01 00:00:00"), tz = "UTC")
+    # set stop to first of month of DateStop
+    DateStop_mon  <- as.POSIXct(format(DateStop, "%Y-%m-01 00:00:00"), tz = "UTC")
+
+    # sequence of months (one entry per month start)
+    months_seq <- seq(from = DateStart_mon, to = DateStop_mon, by = "month")
+
+    # Two sub-cases:
+    # - BaseTStep == 1  -> single monthly layer per month (CDS "monthly_averaged_reanalysis" / moda)
+    # - BaseTStep  > 1  -> multiple sub-month layers per month (e.g. 24 hour-of-day monthly means)
+    if (BaseTStep == 1) {
+      # One layer per month
+      # T_RequestDates: one date per month (we use the first day as placeholder)
+      T_RequestDates <- as.Date(format(months_seq, "%Y-%m-01"))
+      # QueryTimes: single time (CDS expects "00:00")
+      QueryTimes <- "00:00"
+    } else {
+      # Multiple sub-month layers per month (e.g. one per hour-of-day)
+      # Represent each month by BaseTStep repeated entries (placeholder dates)
+      # Each element in T_RequestDates will be the same month repeated BaseTStep times
+      T_RequestDates <- as.Date(rep(format(months_seq, "%Y-%m-01"), each = BaseTStep))
+
+      # Build QueryTimes as hour-of-day strings. If BaseTStep divides 24 evenly, produce symmetric hours.
+      if (24 %% BaseTStep == 0) {
+        # generate times equally spaced over 24h, most common case: BaseTStep == 24 -> 00..23
+        step_hours <- seq(0, 24 - 24 / BaseTStep, by = 24 / BaseTStep)
+        QueryTimes <- sprintf("%02d:00", as.integer(step_hours))
+      } else {
+        # fallback: produce BaseTStep hourly labels 00:00.. (0..BaseTStep-1)
+        QueryTimes <- sprintf("%02d:00", 0:(BaseTStep - 1))
+      }
+    }
+
+    # Now split into windows of length TChunkSize (TChunkSize counts layers, not months)
+    QueryTimeWindows <- split(T_RequestDates, ceiling(seq_along(T_RequestDates) / TChunkSize))
+
+    return(list(QueryTimeWindows = QueryTimeWindows, QueryTimes = QueryTimes))
+  } # end month case
+
+  # --- HOUR CASE (original logic) ------------------------------------------
+  # For hourly base resolution, BaseTStep is expected to be e.g. 24/BaseStep (as your caller sets)
+  # Build QueryTimes ("HH:MM") for the sub-daily product
   if (BaseTResolution == "hour") {
     if (BaseTStep == 24) {
-      QueryTimes <- str_pad(str_c(0:23, "00", sep = ":"), 5, "left", "0") ## this is used for telling CDS which layers we want per day
+      QueryTimes <- sprintf("%02d:00", 0:23)
     } else {
-      QueryTimes <- str_pad(str_c(
-        seq(
-          from = as.numeric(format(Meta.QuickFacts(dataset = DataSet)$TStart, "%H")),
-          to = 23,
-          by = 24 / BaseTStep
-        ),
-        "00",
-        sep = ":"
-      ), 5, "left", "0") ## this is used for telling CDS which layers we want per day, relevant for ensemble_mean and ensemble_spread for example, which are recorded at 3-hour intervals starting at 00:00 per day
+      # sequence of hours stepping by 24/BaseTStep (e.g. for 3-hourly: by = 3)
+      hours_seq <- seq(from = as.numeric(format(BaseTStart, "%H")), to = 23, by = 24 / BaseTStep)
+      QueryTimes <- sprintf("%02d:00", as.integer(hours_seq))
     }
   }
-  if (BaseTResolution == "month") {
-    QueryTimes <- "00:00" ## this is used for telling CDS which layers we want per day
-  }
-  
-  
-  ## check alignment with non-1-BaseTStep data products
-  if (exists("AlignCheck")) {
-    if (!AlignCheck) {
-      stop(
-        "You have specified download of a data set whose raw layers are provided at a temporal resolution = ", BaseTResolution, " at intervalstime steps = ", BaseTStep, ".",
-        "\n Either one or both of the the time-window defining dates (DateStart and DateStop arguments) you have specified, once converted to UTC (", DateStart, " and ", DateStop, ") do not align with the structure of the raw data which requires querying of data to start and terminate at any of the following UTC hours of the day: ", paste(QueryTimes, collapse = "; "), ". Please adjust your date specification accordingly."
-      )
-    }
-  }
-  
-  ## making request ranges
-  if (BaseTResolution == "month") {
-    BaseTStep <- 1 # do not repeat each month, hence set this to 1
-  }
+
+  # Build request date sequence for hourly case
   T_RequestRange <- seq(from = DateStart, to = DateStop, by = BaseTResolution)
   T_RequestDates <- as.Date(rep(unique(format(T_RequestRange, "%Y-%m-%d")), each = BaseTStep))
-  list(
-    QueryTimeWindows = split(T_RequestDates, ceiling(seq_along(T_RequestDates) / TChunkSize)),
-    QueryTimes = QueryTimes
-  )
+
+  QueryTimeWindows <- split(T_RequestDates, ceiling(seq_along(T_RequestDates) / TChunkSize))
+
+  return(list(QueryTimeWindows = QueryTimeWindows, QueryTimes = QueryTimes))
 }
+
 
 ### BACK-CALCULATION OF CUMULATIVE VARIABLES ===================================
 #' Make cumulatively stored records into sequential ones
@@ -220,12 +232,19 @@ Temporal.Cumul <- function(CDS_rast, CumulVar, BaseResolution, BaseStep, Type, T
 #' @return A SpatRaster
 #'
 Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
-                          TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose = TRUE) {
+                          TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose = TRUE, aggregation_needed = FALSE) {
   if (verbose) {
     print("Temporal Aggregation")
   }
-  if (BaseResolution == TResolution && BaseStep == TStep) {
-    Final_rast <- CDS_rast # no temporal aggregation needed
+  if (aggregation_needed) {
+    if (verbose) message("Applying hourly → monthly aggregation")
+    times <- terra::time(CDS_rast)
+    month_index <- format(times, "%Y%m")
+    AggrIndex <- match(month_index, unique(month_index))
+
+  }
+  else if (BaseResolution == TResolution && BaseStep == TStep) {
+    return(CDS_rast) # no temporal aggregation needed
   } else {
     TimeDiff <- sapply(terra::time(CDS_rast), FUN = function(xDate) {
       length(seq(
@@ -235,51 +254,52 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
       )) - 1
     })
     AggrIndex <- floor(TimeDiff / TStep) + 1
-    
-    Form <- substr(TResolution, 1, 1)
-    Form <- ifelse(Form %in% c("h", "y"), toupper(Form), Form)
-    LayerFormat <- format(terra::time(CDS_rast), paste0("%", Form))
-    
-    if (length(unique(AggrIndex)) == 1) { ## this is to avoid a warning message thrown by terra
-      Final_rast <- app(
-        x = CDS_rast,
-        cores = Cores,
-        fun = FUN
-      )
-    } else {
-      Final_rast <- tapp(
-        x = CDS_rast,
-        index = AggrIndex,
-        cores = Cores,
-        fun = FUN
-      )
-    }
-    
-    if (TResolution == "year") {
-      terra::time(Final_rast) <- as.POSIXct(
-        paste0(LayerFormat[!duplicated(AggrIndex)], "-01-01"),
-        tz = TZone
-      )
-    }
-    if (TResolution == "month") {
-      terra::time(Final_rast) <- as.POSIXct(
-        paste0(format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m"), "-01"),
-        tz = TZone
-      )
-    }
-    if (TResolution == "day") {
-      terra::time(Final_rast) <- as.POSIXct(
-        format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m-%d"),
-        tz = TZone
-      )
-    }
-    if (TResolution == "hour") {
-      terra::time(Final_rast) <- as.POSIXct(
-        terra::time(CDS_rast)[!duplicated(AggrIndex)],
-        tz = TZone
-      )
-    }
   }
+
+  Form <- substr(TResolution, 1, 1)
+  Form <- ifelse(Form %in% c("h", "y"), toupper(Form), Form)
+  LayerFormat <- format(terra::time(CDS_rast), paste0("%", Form))
+
+  if (length(unique(AggrIndex)) == 1) { ## this is to avoid a warning message thrown by terra
+    Final_rast <- app(
+      x = CDS_rast,
+      cores = Cores,
+      fun = FUN
+    )
+  } else {
+    Final_rast <- tapp(
+      x = CDS_rast,
+      index = AggrIndex,
+      cores = Cores,
+      fun = FUN
+    )
+  }
+
+  if (TResolution == "year") {
+    terra::time(Final_rast) <- as.POSIXct(
+      paste0(LayerFormat[!duplicated(AggrIndex)], "-01-01"),
+      tz = TZone
+    )
+  }
+  if (TResolution == "month") {
+    terra::time(Final_rast) <- as.POSIXct(
+      paste0(format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m"), "-01"),
+      tz = TZone
+    )
+  }
+  if (TResolution == "day") {
+    terra::time(Final_rast) <- as.POSIXct(
+      format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m-%d"),
+      tz = TZone
+    )
+  }
+  if (TResolution == "hour") {
+    terra::time(Final_rast) <- as.POSIXct(
+      terra::time(CDS_rast)[!duplicated(AggrIndex)],
+      tz = TZone
+    )
+  }
+
   return(Final_rast)
 }
 

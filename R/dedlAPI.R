@@ -1,7 +1,6 @@
 DEDL.token <- function(DEDL_User, DEDL_Pwd){
-  library(reticulate)
-  py_require('destinelab')
-  destinelab <- import('destinelab')
+  reticulate::py_require('destinelab')
+  destinelab <- reticulate::import('destinelab')
 
   auth = destinelab$AuthHandler(DEDL_User, DEDL_Pwd)
   return(auth)
@@ -48,20 +47,18 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose,
       `ecmwf:product_type` = request$product_type,
       `ecmwf:area` = request$area,
       `ecmwf:time` = request$time
-
     )
-    print(body)
 
-    API_request <- POST(
+    API_request <- httr::POST(
       url = stac_order_url,
       body = body,
       encode = "json",
       auth_headers
     )
-    if (status_code(API_request) != 200) {
+    if (httr::status_code(API_request) != 200) {
       stop(paste(
-        "Request failed with status", status_code(API_request),
-        "\nMessage:", content(API_request, as = "text", encoding = "UTF-8")
+        "Request failed with status", httr::status_code(API_request),
+        "\nMessage:", httr::content(API_request, as = "text", encoding = "UTF-8")
       ))
     }
 
@@ -73,19 +70,19 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose,
 DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
   auth_headers = DEDL.token(DEDL_User, DEDL_Pwd)
 
-  ordered_item <- content(API_request, as = "parsed", simplifyVector = TRUE)
+  ordered_item <- httr::content(API_request, as = "parsed", simplifyVector = TRUE)
   self_url = ordered_item$links$href[ordered_item$links$rel == "self"]
 
   repeat {
     # 1. Get item status
-    item_response <- GET(self_url, auth_headers)
-    if (status_code(item_response) != 200) {
+    item_response <- httr::GET(self_url, auth_headers)
+    if (httr::status_code(item_response) != 200) {
       stop(paste(
-        "Request failed with status", status_code(item_response),
-        "\nMessage:", content(item_response, as = "text", encoding = "UTF-8")
+        "Request failed with status", httr::status_code(item_response),
+        "\nMessage:", httr::content(item_response, as = "text", encoding = "UTF-8")
       ))
     }
-    item_data <- content(item_response, as = "parsed", type = "application/json")
+    item_data <- httr::content(item_response, as = "parsed", type = "application/json")
 
     # 2. Extract order status
     order_status <- item_data$properties[["order:status"]]
@@ -106,7 +103,7 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
   asset_url <- item_data$assets$downloadLink$href
 
   # FNAME <-API_request$get_request()$target
-  file_response <- GET(asset_url, auth_headers, write_disk(FNAME, overwrite = TRUE))
+  file_response <- httr::GET(asset_url, auth_headers, write_disk(FNAME, overwrite = TRUE))
 
 
   LoadTry <- tryCatch(rast(FNAME),

@@ -60,10 +60,11 @@ Register.Credentials <- function(API_User, API_Key) {
 #' @param QueryFormat Character. File format queried by user
 #' @param Dir Directory pointer. Where to store CDS request outcomes.
 #' @param verbose Logical. Whether to print/message function progress in console or not.
-#' @param API_User Character. CDS API User
-#' @param API_Key Character. CDS API Key
+#' @param API_User Character. CDS API User or DEDL User.
+#' @param API_Key Character. CDS API Key or DEDL password.
 #' @param TimeOut Numeric. Legacy, ignored when querying data from new CDS (https://cds-beta.climate.copernicus.eu/; this happens when the package version of ecmwfr is >= 2.0.0). The timeout for each download in seconds. Default 36000 seconds (10 hours).
 #' @param FIterStart Numeric. Meant for consistent file numbering in multi-chunk requesting.
+#' @param DEDL Logical.  Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.
 #'
 #' @importFrom ecmwfr wf_request
 #'
@@ -161,10 +162,11 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
 #'
 #' @param Requests_ls List. ecmwfr-ready CDS requests formed with \code{\link{Make.Request}}.
 #' @param Dir Character. Directory where to save raw data.
-#' @param API_User Character. CDS API User
-#' @param API_Key Character. CDS API Key
+#' @param API_User Character. CDS API User or DEDL User.
+#' @param API_Key Character. CDS API Key or DEDL password.
 #' @param TryDown Numeric. How often to retry a failing request/download
 #' @param verbose Logical. Whether to print/message function progress in console or not.
+#' @param DEDL Logical. Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.
 #'
 #' @importFrom ecmwfr wf_transfer
 #' @importFrom httr DELETE

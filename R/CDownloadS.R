@@ -18,8 +18,8 @@
 #' @param FileName Character. A file name for the produced file.
 #' @param FileExtension Character. A file extension for the produced file. Supported values are ".nc" (default) and ".tif" (better support for metadata).
 #' @param Compression Integer between 1 to 9. Applied to final .nc file that the function writes to hard drive. Same as compression argument in terra::writeCDF(). Ignored if FileExtension = ".tif".
-#' @param API_Key Character; ECMWF cds API key.
-#' @param API_User Character; ECMWF cds user number.
+#' @param API_Key Character; ECMWF cds API key. If DEDL, use DEDL password.
+#' @param API_User Character; ECMWF cds user number. IF DEDL, use DEDL username.
 #' @param TChunkSize Numeric. Number of layers to bundle in each individual download. Default is 6000 to adhere to most restrictive CDS limits: https://cds.climate.copernicus.eu/live/limits.
 #' @param Cores Numeric. How many cores to use when carrying out temporal aggregation. Default is 1.
 #' @param verbose Logical. Whether to print/message function progress in console or not.
@@ -27,6 +27,7 @@
 #' @param TryDown Optional, numeric. Legacy, ignored when querying data from new CDS (https://cds-beta.climate.copernicus.eu/; this happens when the package version of ecmwfr is >= 2.0.0). How often to attempt the download of each individual file that the function queries from the CDS. This is to circumvent having to restart the entire function when encountering connectivity issues.
 #' @param TimeOut Numeric. Legacy, ignored when querying data from new CDS (https://cds-beta.climate.copernicus.eu/; this happens when the package version of ecmwfr is >= 2.0.0). The timeout for each download in seconds. Default 36000 seconds (10 hours).
 #' @param closeConnections Logical. Whether to close all connections at the end of function execution. When executing this function often after another, this can be very useful to avoid errors.
+#' @param DEDL Logical. Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.
 #'
 #' @importFrom tools file_path_sans_ext
 #' @importFrom terra rast

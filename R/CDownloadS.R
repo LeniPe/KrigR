@@ -162,6 +162,29 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
                        Keep_Raw = FALSE,
                        closeConnections = TRUE,
                        DEDL = FALSE) {
+
+  aggregation_needed <- FALSE
+  if (DEDL &&
+      DataSet == "reanalysis-era5-land-monthly-means" &&
+      Type == "monthly_averaged_reanalysis") {
+
+    # Request needs to be converted to type monthly_averaged_reanalysis_by_hour_of_day
+    # because this type is not available in DEDL
+    Type <- "monthly_averaged_reanalysis_by_hour_of_day"
+    TStep <- 24
+    aggregation_needed <- TRUE
+    if ((TChunkSize / TStep) %% 1 != 0) {
+      stop(
+        "Please specify a TChunkSize (currently = ",
+        TChunkSize,
+        ") that is a multiple of the base temporal subdivision (TStep = ",
+        TStep,
+        ")."
+      )
+    }
+  }
+
+
   ## Catching Most Frequent Issues ===============
   if (closeConnections) {
     on.exit(closeAllConnections())
@@ -250,11 +273,28 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
     as.POSIXct(DateStart, tz = TZone),
     as.POSIXct(DateStop, tz = TZone)
   ))
+
+  # quick fix because monthly averages with hourly intervals are not covered
+  is_monthly_hourly <- (
+    DataSet == "reanalysis-era5-land-monthly-means" &&
+      Type == "monthly_averaged_reanalysis_by_hour_of_day"
+  )
+
+  if (is_monthly_hourly) {
+    BaseResolution <- "month"
+    BaseTStep <- 24  # 24 hours-of-day per month
+    TStep <- 24
+  } else if (BaseResolution == "hour") {
+    BaseTStep <- 24 / BaseStep
+  } else {
+    BaseTStep <- BaseStep
+  }
+
   QueryTimeWindows <- Make.RequestWindows(
     Dates_df = Dates_df,
     BaseTResolution = BaseResolution,
-    BaseTStep = ifelse(BaseResolution == "hour", 24 / BaseStep, BaseStep),
-    BaseTStart = BaseStart,
+    BaseTStep = BaseTStep,
+    BaseTStart = NA,
     TChunkSize = TChunkSize,
     DataSet = DataSet
   )
@@ -402,7 +442,8 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   #--- Temporal aggregation
   CDS_rast <- Temporal.Aggr(
     CDS_rast, BaseResolution, BaseStep,
-    TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose
+    TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose,
+    aggregation_needed
   )
 
   ## Exports =================================

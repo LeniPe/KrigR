@@ -198,11 +198,10 @@ Execute.Requests <- function(Requests_ls, Dir, API_User, API_Key, TryDown, verbo
     if (DEDL) {
       filename <- Requests_ls[[requestID]]$target
       DEDL.download(API_request, filename, API_User, API_Key)
-      return()
     }
 
     ## old CDS
-    if (packageVersion("ecmwfr") < "2.0.0") {
+    else if (packageVersion("ecmwfr") < "2.0.0") {
       FileDown <- list(state = "queued")
       Down_try <- 0
       while (FileDown$state != "completed" && Down_try <= TryDown) {

@@ -3,9 +3,7 @@ DEDL.token <- function(DEDL_User, DEDL_Pwd){
   destinelab <- reticulate::import('destinelab')
 
   auth = destinelab$AuthHandler(DEDL_User, DEDL_Pwd)
-  return(auth)
   access_token = auth$get_token()
-  print(access_token)
   auth_headers <- httr::add_headers(Authorization = paste("Bearer", access_token))
   auth_headers
 }
@@ -15,14 +13,12 @@ DEDL.dataset_map <- function(cds_dataset){
     return("EO.ECMWF.DAT.ERA5_LAND_MONTHLY")
   }
   if(cds_dataset=='reanalysis-era5-land'){
-    return('XXX')
+    return('EO.ECMWF.DAT.ERA5_LAND_HOURLY')
   }
-  if(cds_dataset=='reanalysis-era5-single-levels'){
-    return('XXX')
-  }
+  stop(sprintf("Unknown DEDL mapping for CDS dataset '%s'", cds_dataset))
 }
 
-DEDL.order<- function(Requests_ls, API_Key, API_User, verbose,
+DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
                       stac_url = 'https://hda.data.destination-earth.eu/stac/v2/') {
 
   auth_headers = DEDL.token(DEDL_User, DEDL_Pwd)

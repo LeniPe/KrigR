@@ -322,7 +322,7 @@ Meta.Check <- function(DataSet = "reanalysis-era5-land", Type = NA, VariableChec
 Meta.NC <- function(NC, FName, Attrs, Write = FALSE, Read = TRUE, Compression = 9) {
   ## Writing metadata
   if (Write) {
-    NC <- writeCDF(x = NC, filename = FName, compression = Compression)
+    writeCDF(x = NC, filename = FName, compression = Compression)
     nc <- nc_open(FName, write = TRUE)
     for (name in names(Attrs)) {
       ncatt_put(nc, 0, name, Attrs[[name]])
@@ -331,6 +331,7 @@ Meta.NC <- function(NC, FName, Attrs, Write = FALSE, Read = TRUE, Compression = 
   }
   ## Reading metadata
   if (Read) {
+    NC_new <- terra::rast(FName)
     nc <- nc_open(FName)
     # Retrieve custom metadata
     Meta <- lapply(names(Attrs), FUN = function(name) {
@@ -340,8 +341,9 @@ Meta.NC <- function(NC, FName, Attrs, Write = FALSE, Read = TRUE, Compression = 
     nc_close(nc)
     Meta_vec <- unlist(Meta)
     names(Meta_vec) <- names(Attrs)
-    terra::metags(NC) <- Meta_vec
+    terra::metags(NC_new) <- Meta_vec
+
+    return(NC_new)
   }
-  ## return object
-  return(NC)
+  invisible(NULL)
 }

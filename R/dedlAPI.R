@@ -8,6 +8,31 @@ DEDL.token <- function(DEDL_User, DEDL_Pwd){
   auth_headers
 }
 
+DEDL.httr_status_check <- function(API_request){
+  if (httr::status_code(API_request) != 200) {
+    stop(paste(
+      "Request failed with status", httr::status_code(API_request),
+      "\nMessage:", httr::content(API_request, as = "text", encoding = "UTF-8")
+    ))
+  }
+}
+
+DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5) {
+  attempt <- 1
+  repeat {
+    tryCatch({
+      resp <- httr::GET(url, ...)
+      DEDL.httr_status_check(resp)
+      return(resp)
+    }, error = function(e) {
+      if (attempt >= max_retries) stop(e)
+      message(sprintf("GET failed (attempt %d/%d): %s", attempt, max_retries, e$message))
+      Sys.sleep(retry_delay * attempt)  # exponential backoff
+      attempt <<- attempt + 1
+    })
+  }
+}
+
 DEDL.dataset_map <- function(cds_dataset){
   if(cds_dataset=='reanalysis-era5-land-monthly-means'){
     return("EO.ECMWF.DAT.ERA5_LAND_MONTHLY")
@@ -51,12 +76,11 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
       encode = "json",
       auth_headers
     )
-    if (httr::status_code(API_request) != 200) {
-      stop(paste(
-        "Request failed with status", httr::status_code(API_request),
-        "\nMessage:", httr::content(API_request, as = "text", encoding = "UTF-8")
-      ))
-    }
+
+    DEDL.httr_status_check(API_request)
+    cat("Request URL: ", httr::url(API_request), "\n")
+    cat("Request Body:\n")
+    cat(jsonlite::toJSON(body, pretty = TRUE, auto_unbox = TRUE), "\n")
 
     Requests_ls[[requestID]]$API_request <- API_request
   }
@@ -70,14 +94,8 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
   self_url = ordered_item$links$href[ordered_item$links$rel == "self"]
 
   repeat {
-    # 1. Get item status
-    item_response <- httr::GET(self_url, auth_headers)
-    if (httr::status_code(item_response) != 200) {
-      stop(paste(
-        "Request failed with status", httr::status_code(item_response),
-        "\nMessage:", httr::content(item_response, as = "text", encoding = "UTF-8")
-      ))
-    }
+    item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown)
+    DEDL.httr_status_check(item_response)
     item_data <- httr::content(item_response, as = "parsed", type = "application/json")
 
     # 2. Extract order status
@@ -98,9 +116,8 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
 
   asset_url <- item_data$assets$downloadLink$href
 
-  # FNAME <-API_request$get_request()$target
-  file_response <- httr::GET(asset_url, auth_headers, write_disk(FNAME, overwrite = TRUE))
-
+  file_response <- DEDL.safe_get(asset_url, auth_headers, httr::write_disk(FNAME, overwrite = TRUE), max_retries = TryDown)
+  DEDL.httr_status_check(file_response)
 
   LoadTry <- tryCatch(rast(FNAME),
                       error = function(e) {

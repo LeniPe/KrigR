@@ -46,6 +46,48 @@ Register.Credentials <- function(API_User, API_Key) {
     }
   }
 }
+
+### helper ===
+valid_days <- function(QueryTimeWindow) {
+  # Get first and last day of Query Window
+  start <- as.Date(min(QueryTimeWindow))
+  max_date <- as.Date(max(QueryTimeWindow))
+  end <- seq(max_date, by = "month", length.out = 2)[2] - 1
+
+  # Return unique day numbers as integers
+  unique(as.integer(format(seq(start, end, by = "day"), "%d")))
+}
+
+name_based_on_dates <- function(Requests_ls){
+  Dates <- lapply(Requests_ls, function(req) {
+    # Case 1: 'date' exists
+    if (!is.null(req$date)) {
+      d <- req$date
+      # Replace slashes with " - "
+      gsub("/", " - ", d)
+
+      # Case 2: 'datetime' exists
+    } else if (!is.null(req$datetime)) {
+      parts <- strsplit(req$datetime, "/")[[1]]
+      # Remove time from each
+      parts <- sub("T.*", "", parts)
+      # Combine with " - "
+      paste(parts, collapse = " - ")
+
+      # Case 3: 'year' exists (possibly multiple years)
+    } else if (!is.null(req$year)) {
+      yr <- req$year
+      paste0(head(yr, 1), " - ", tail(yr, 1))
+
+      # Case 4: nothing exists
+    } else {
+      NA
+    }
+  })
+  # Flatten to a character vector
+  Dates <- unlist(Dates)
+  return(Dates)
+}
 ### FORMING CDS Requests =======================================================
 #' Form CDS Requests
 #'
@@ -110,12 +152,7 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
   ## making list names useful for request execution updates to console
   Iterators <- paste0("[", (1:length(Requests_ls)) + (FIterStart - 1), "/", length(Requests_ls) + (FIterStart - 1), "] ")
   FNames <- unlist(lapply(Requests_ls, "[[", "target"))
-  Dates <- unlist(lapply(lapply(Requests_ls, "[[", "date"), gsub, pattern = "/", replacement = " - "))
-  if (length(Dates) == 0) { # this happens for monthly data queries
-    Dates <- unlist(lapply(lapply(Requests_ls, "[[", "year"), FUN = function(x) {
-      paste0(head(x, 1), " - ", tail(x, 1))
-    }))
-  }
+  Dates <- name_based_on_dates(Requests_ls)
   names(Requests_ls) <- paste0(Iterators, FNames, " (UTC: ", Dates, ")")
   ## check if files are already present
   FCheck <- sapply(FNames, Check.File,

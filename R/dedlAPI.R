@@ -121,7 +121,7 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
 
   ordered_item <- httr::content(API_request, as = "parsed", simplifyVector = TRUE)
   self_url = ordered_item$links$href[ordered_item$links$rel == "self"]
-
+  spinner <- c(".", "..", "...", "....", ".....")
   repeat {
     item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown)
     DEDL.httr_status_check(item_response)
@@ -129,7 +129,6 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
 
     # 2. Extract order status
     order_status <- item_data$properties[["order:status"]]
-    cat("Order status:", order_status, "\n")
 
     # 3. Check conditions
     if (order_status == "succeeded") {
@@ -139,11 +138,18 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
       stop("Order processing failed")
     }
 
-    # 4. Wait 30 seconds before next check
+    for (s in spinner) {
+      cat("\rOrder Status: ", order_status, s)
+      flush.console()
+      Sys.sleep(0.3)
+    }
+
     Sys.sleep(10)
   }
 
   asset_url <- item_data$assets$downloadLink$href
+  print(paste0("Download link: ", asset_url))
+  FNAME <- file.path(Dir, filename)
 
   file_response <- DEDL.safe_get(asset_url, auth_headers, httr::write_disk(FNAME, overwrite = TRUE), max_retries = TryDown)
   DEDL.httr_status_check(file_response)
@@ -164,4 +170,5 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
     unlink(paste0(FNAME, ".zip"))
     warning("CDS download seems to have produced a .zip file. KrigR has automatically extracted data from this file. This is currently an experimental fix.")
   }
+  print(paste0(FNAME, ' was successfully downloaded'))
 }

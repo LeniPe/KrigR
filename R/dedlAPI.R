@@ -58,17 +58,46 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
     request = Requests_ls[[requestID]]
     cds_dataset = request$dataset_short_name
     dedl_dataset = DEDL.dataset_map(cds_dataset)
+
+    if ("datetime" %in% names(request)) {
+      stac_search_url = "https://hda.data.destination-earth.eu/stac/v2/search"
+
+      # Build query list
+      query <- list(
+        datetime = request$datetime,
+        collections = dedl_dataset
+        #bbox = paste(request$area, collapse = ",")
+      )
+
+      res <- DEDL.safe_get(
+        url = "https://hda.data.destination-earth.eu/stac/v2/search",
+        query = query,
+        auth_headers
+      )
+      DEDL.httr_status_check(res)
+
+      content_list <- jsonlite::fromJSON(httr::content(res, "text", encoding = "UTF-8"))
+      links_df <- content_list$features$links[[1]]
+      retrieve_row <- links_df[links_df$rel == "retrieve", ]
+      props <- content_list$features$properties
+      request$year <- unlist(retrieve_row$body$year)
+      request$month <- unlist(retrieve_row$body$month)
+      request$day <- unlist(retrieve_row$body$day)
+    }
     stac_order_url = paste0(stac_url, "collections/", dedl_dataset, "/order")
 
     body <- list(
       `ecmwf:variable` = request$variable,
       `ecmwf:month` = request$month,
       `ecmwf:year` = request$year,
+      `ecmwf:day` = request$day,
       `ecmwf:download_format` = request$format,
       `ecmwf:product_type` = request$product_type,
-      `ecmwf:area` = request$area,
       `ecmwf:time` = request$time
     )
+    if (grepl("month", request$product_type)){
+      body$`ecmwf:day` <- NULL
+    }
 
     API_request <- httr::POST(
       url = stac_order_url,

@@ -49,11 +49,11 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
   auth_headers = DEDL.token(DEDL_User, DEDL_Pwd)
 
   for (requestID in 1:length(Requests_ls)) { ## looping over requests
-    if (verbose) {
-      print(names(Requests_ls)[requestID])
-    }
     if (class(Requests_ls[[requestID]]) == "logical") {
       next()
+    }
+    if (verbose) {
+      print(names(Requests_ls)[requestID])
     }
     request = Requests_ls[[requestID]]
     cds_dataset = request$dataset_short_name
@@ -116,7 +116,7 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
   Requests_ls
 }
 
-DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
+DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getwd(), TryDown){
   auth_headers = DEDL.token(DEDL_User, DEDL_Pwd)
 
   ordered_item <- httr::content(API_request, as = "parsed", simplifyVector = TRUE)
@@ -126,11 +126,8 @@ DEDL.download <- function(API_request, FNAME, DEDL_User, DEDL_Pwd){
     item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown)
     DEDL.httr_status_check(item_response)
     item_data <- httr::content(item_response, as = "parsed", type = "application/json")
-
-    # 2. Extract order status
     order_status <- item_data$properties[["order:status"]]
 
-    # 3. Check conditions
     if (order_status == "succeeded") {
       cat("Order completed! Asset is now available for download.\n")
       break

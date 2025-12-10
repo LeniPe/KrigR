@@ -35,5 +35,6 @@ Imports:
     reticulate,
     methods,
     future,
-    future.apply
+    future.apply,
+    usethis
 Depends: R (>= 4.0.0) 

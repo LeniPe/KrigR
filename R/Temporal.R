@@ -78,7 +78,6 @@ complete_months_split <- function(DateStart, DateStop, TChunkSize, BaseTStep = 2
 #' @param BaseTStep Numeric. Base time steps of queried data on CDS
 #' @param BaseTStart POSIXct. Base starting date and time of queried data on CDS
 #' @param TChunkSize Numeric. Maximum amount of layers to include in each query
-#' @param DataSet Character. Name of data set. Usually a set of words separated by dashes. See possible datasets by calling \code{\link{Meta.List}}.
 #'
 #' @importFrom stringr str_pad
 #' @importFrom stringr str_c
@@ -99,7 +98,7 @@ complete_months_split <- function(DateStart, DateStop, TChunkSize, BaseTStep = 2
 #'                     BaseTStart = as.POSIXct("1950-01-01 00:01", tz = "UTC")
 #'                     TChunkSize = 12000)
 #'
-Make.RequestWindows <- function(Dates_df, BaseTResolution, BaseTStep, BaseTStart, TChunkSize, DataSet) {
+Make.RequestWindows <- function(Dates_df, BaseTResolution, BaseTStep, BaseTStart, TChunkSize) {
   # Normalize start / stop as POSIXct UTC (Dates_df$UTC expected)
   DateStart <- as.POSIXct(Dates_df$UTC[1], tz = "UTC")
   DateStop  <- as.POSIXct(Dates_df$UTC[2], tz = "UTC")

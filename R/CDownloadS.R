@@ -296,8 +296,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
     BaseTResolution = BaseResolution,
     BaseTStep = BaseTStep,
     BaseTStart = NA,
-    TChunkSize = TChunkSize,
-    DataSet = DataSet
+    TChunkSize = TChunkSize
   )
   QueryTimes <- QueryTimeWindows$QueryTimes
   QueryTimeWindows <- QueryTimeWindows$QueryTimeWindows

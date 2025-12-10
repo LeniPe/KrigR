@@ -416,16 +416,8 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   }
 
   #--- Loading data
-  CDS_rast <- rast(TempFs)
+  CDS_rast <- terra::rast(TempFs)
   terra::time(CDS_rast) <- as.POSIXct(terra::time(CDS_rast), tz = TZone) # assign time in queried timezone
-
-  ## Spatial =====
-  if (verbose) {
-    print("Spatial Limiting")
-  }
-  if (!NoSpatialFlag) {
-    CDS_rast <- Handle.Spatial(CDS_rast, Extent)
-  }
 
   ## Temporal =====
   #--- Cumulative Fix
@@ -445,6 +437,14 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
     TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose,
     aggregation_needed, Dir
   )
+
+  ## Spatial =====
+  if (!NoSpatialFlag) {
+    if (verbose) {
+      print("Spatial Limiting")
+    }
+    CDS_rast <- Handle.Spatial(CDS_rast, Extent)
+  }
 
   ## Exports =================================
   if (verbose) {
@@ -474,6 +474,8 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   if (!Keep_Raw) {
     unlink(TempFs)
   }
+  moreTempFs <- list.files(Dir, pattern = '^TEMP_aggr_chunk')
+  unlink(moreTempFs)
 
   ### return object
   if (closeConnections) {

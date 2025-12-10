@@ -201,6 +201,10 @@ BioClim <- function(
   #--- Data download
   RawNames <- paste(file_path_sans_ext(FileName), sapply(Vars_ls, "[[", "Var"), "RAW", sep = "_")
   Raw_data <- lapply(1:length(Vars_ls), FUN = function(Var_Iter) {
+    if (file.exists(paste0(file.path(Dir, RawNames[[Var_Iter]]), FileExtension))){
+      print(paste0("loading from disk: ", RawNames[[Var_Iter]]))
+      return(terra::rast(paste0(file.path(Dir, RawNames[[Var_Iter]]), FileExtension)))
+    }
     ## VARIABLE IDENTIFICATION
     Var_down <- Vars_ls[[Var_Iter]]$Var
     CumulVar <- ifelse(startsWith(prefix = "total_", Var_down), TRUE, FALSE)

@@ -443,7 +443,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   CDS_rast <- Temporal.Aggr(
     CDS_rast, BaseResolution, BaseStep,
     TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose,
-    aggregation_needed
+    aggregation_needed, Dir
   )
 
   ## Exports =================================

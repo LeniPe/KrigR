@@ -296,7 +296,8 @@ BioClim <- function(
       CDS_rast = Raw_data[[Monthly_Iter$Source]],
       BaseResolution = "day", BaseStep = 1,
       TResolution = "month", TStep = 1, FUN = Monthly_Iter$AggrFUN,
-      Cores = Cores, QueryTargetSteps = NULL, TZone = TZone, verbose = FALSE
+      Cores = Cores, QueryTargetSteps = NULL, TZone = TZone, verbose = FALSE,
+      Dir = Dir
     )
     terra::metags(Monthly_rast) <- MetaMonthly_vec
     if (FileExtension == ".tif") {

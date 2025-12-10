@@ -272,47 +272,122 @@ Temporal.Cumul <- function(CDS_rast, CumulVar, BaseResolution, BaseStep, Type, T
 #' @param QueryTargetSteps Character. Target resolution steps
 #' @param TZone Character. Time zone for queried data.
 #' @param verbose Logical. Whether to print/message function progress in console or not.
+#' @param aggregation_needed Logical. Force aggregation even if BaseResolution/TStep match
+#' @param Dir Character.
+#'
 #'
 #' @importFrom terra time
 #' @importFrom terra tapp
 #' @importFrom terra app
+#' @importFrom future plan sequential
+#' @importFrom future.apply future_lapply
 #'
 #' @return A SpatRaster
 #'
 Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
-                          TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose = TRUE, aggregation_needed = FALSE) {
+                          TResolution, TStep, FUN, Cores,
+                          QueryTargetSteps, TZone,
+                          verbose = TRUE, aggregation_needed = FALSE, Dir = getwd()) {
+
   if (verbose) message("Temporal Aggregation started")
 
+  times <- terra::time(CDS_rast)
   if (aggregation_needed) {
     if (verbose) message("Applying hourly → monthly aggregation")
-    times <- terra::time(CDS_rast)
     month_index <- format(times, "%Y%m")
     AggrIndex <- match(month_index, unique(month_index))
   } else if (BaseResolution == TResolution && BaseStep == TStep) {
     if (verbose) message("No temporal aggregation required")
     return(CDS_rast) # no temporal aggregation needed
   } else {
-    TimeDiff <- sapply(terra::time(CDS_rast), FUN = function(xDate) {
-      length(seq(
-        from = terra::time(CDS_rast)[1],
-        to = xDate,
-        by = TResolution
-      )) - 1
-    })
-    AggrIndex <- floor(TimeDiff / TStep) + 1
+    if (TResolution == "month"){
+      AggrIndex <- (lubridate::year(times) - lubridate::year(times[1])) * 12 +
+        lubridate::month(times) - lubridate::month(times[1]) + 1
+    } else {
+      TimeDiff <- as.numeric(difftime(times, times[1], units = TResolution))
+      AggrIndex <- floor(TimeDiff / TStep) + 1
+    }
   }
 
   Form <- substr(TResolution, 1, 1)
   Form <- ifelse(Form %in% c("h", "y"), toupper(Form), Form)
-  LayerFormat <- format(terra::time(CDS_rast), paste0("%", Form))
+  LayerFormat <- format(times, paste0("%", Form))
 
-  if (length(unique(AggrIndex)) == 1) { ## this is to avoid a warning message thrown by terra
+  # --- Simple case: single aggregation group ---
+  if (length(unique(AggrIndex)) == 1) {
     Final_rast <- app(
       x = CDS_rast,
       cores = Cores,
       fun = FUN
     )
   } else {
+    # Get all source files
+    src_files <- terra::sources(CDS_rast)
+
+    # Each source file becomes a chunk
+    rast_infos <- lapply(seq_along(src_files), function(i) {
+      list(
+        name = paste0("aggr_chunk_", i),
+        src_file = src_files[i]
+      )
+    })
+
+    # --- Parallel processing ---
+    if (Cores > 1 && length(rast_infos) > 1) {
+      if (verbose) message("Processing ", length(rast_infos), " chunks in parallel using ", Cores, " cores")
+      future::plan(future::multisession, workers = Cores)
+
+      results <- future.apply::future_lapply(rast_infos, function(rast_info) {
+        r_sub <- terra::rast(rast_info$src_file)
+        times_sub <- terra::time(r_sub)
+        if (TResolution == "month"){
+          AggrIndex_sub <- (lubridate::year(times_sub) - lubridate::year(times_sub[1])) * 12 +
+            lubridate::month(times_sub) - lubridate::month(times_sub[1]) + 1
+        } else {
+          TimeDiff_sub <- as.numeric(difftime(times_sub, times_sub[1], units = TResolution))
+          AggrIndex_sub <- floor(TimeDiff_sub / TStep) + 1
+        }
+        out_file <- file.path(Dir, paste0("TEMP_", rast_info$name, ".tif"))
+        terra::tapp(
+          x = r_sub,
+          index = AggrIndex_sub,
+          fun = FUN,
+          filename = out_file,
+          overwrite = TRUE
+        )
+        return(out_file)
+      }, future.seed = TRUE)
+
+      future::plan(future::sequential)
+      # Merge results
+      Final_rast <- terra::rast(unlist(results))
+
+    } else {
+      out_files <- c()
+      for (rast_info in rast_infos) {
+        r_sub <- terra::rast(rast_info$src_file)
+        times_sub <- terra::time(r_sub)
+        if (TResolution == "month"){
+          AggrIndex_sub <- (lubridate::year(times_sub) - lubridate::year(times_sub[1])) * 12 +
+            lubridate::month(times_sub) - lubridate::month(times_sub[1]) + 1
+        } else {
+          TimeDiff_sub <- as.numeric(difftime(times_sub, times_sub[1], units = TResolution))
+          AggrIndex_sub <- floor(TimeDiff_sub / TStep) + 1
+        }
+        #print(unique(AggrIndex_sub))
+        out_file <- file.path(Dir, paste0("TEMP_", rast_info$name, ".tif"))
+        terra::tapp(
+          x = r_sub,
+          index = AggrIndex_sub,
+          fun = FUN,
+          filename = out_file,
+          overwrite = TRUE
+        )
+        out_files <- c(out_files, out_file)
+      }
+      Final_rast <- terra::rast(out_files)
+    }
+  }
   # --- Assign timestamps to aggregated layers ---
   if (verbose) message("Assigning time dimension to aggregated raster")
 
@@ -324,19 +399,19 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
   }
   if (TResolution == "month") {
     terra::time(Final_rast) <- as.POSIXct(
-      paste0(format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m"), "-01"),
+      paste0(format(times[!duplicated(AggrIndex)], "%Y-%m"), "-01"),
       tz = TZone
     )
   }
   if (TResolution == "day") {
     terra::time(Final_rast) <- as.POSIXct(
-      format(terra::time(CDS_rast)[!duplicated(AggrIndex)], "%Y-%m-%d"),
+      format(times[!duplicated(AggrIndex)], "%Y-%m-%d"),
       tz = TZone
     )
   }
   if (TResolution == "hour") {
     terra::time(Final_rast) <- as.POSIXct(
-      terra::time(CDS_rast)[!duplicated(AggrIndex)],
+      times[!duplicated(AggrIndex)],
       tz = TZone
     )
   }

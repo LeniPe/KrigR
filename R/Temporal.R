@@ -233,17 +233,15 @@ Temporal.Cumul <- function(CDS_rast, CumulVar, BaseResolution, BaseStep, Type, T
 #'
 Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
                           TResolution, TStep, FUN, Cores, QueryTargetSteps, TZone, verbose = TRUE, aggregation_needed = FALSE) {
-  if (verbose) {
-    print("Temporal Aggregation")
-  }
+  if (verbose) message("Temporal Aggregation started")
+
   if (aggregation_needed) {
     if (verbose) message("Applying hourly → monthly aggregation")
     times <- terra::time(CDS_rast)
     month_index <- format(times, "%Y%m")
     AggrIndex <- match(month_index, unique(month_index))
-
-  }
-  else if (BaseResolution == TResolution && BaseStep == TStep) {
+  } else if (BaseResolution == TResolution && BaseStep == TStep) {
+    if (verbose) message("No temporal aggregation required")
     return(CDS_rast) # no temporal aggregation needed
   } else {
     TimeDiff <- sapply(terra::time(CDS_rast), FUN = function(xDate) {
@@ -267,13 +265,8 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
       fun = FUN
     )
   } else {
-    Final_rast <- tapp(
-      x = CDS_rast,
-      index = AggrIndex,
-      cores = Cores,
-      fun = FUN
-    )
-  }
+  # --- Assign timestamps to aggregated layers ---
+  if (verbose) message("Assigning time dimension to aggregated raster")
 
   if (TResolution == "year") {
     terra::time(Final_rast) <- as.POSIXct(
@@ -299,7 +292,7 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
       tz = TZone
     )
   }
-
+  if (verbose) message("Temporal aggregation done")
   return(Final_rast)
 }
 

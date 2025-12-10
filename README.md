@@ -1,4 +1,7 @@
 # KrigR
+
+**This is a modified fork with changes that likely broke exiting functionality!** This fork is supposed to be used when using the Destination Earth Datalake (DEDL) instead of ECMWFR/CDS as ERA5 data source.
+
 An R Package for downloading, preprocessing, and statistical downscaling of the European Centre for Medium-range Weather Forecasts ReAnalysis 5 (ERA5) family provided by the [European Centre for Medium‐Range Weather Forecasts (ECMWF)](https://www.ecmwf.int/).The package interfaces with the [Climate Data Store](https://cds.climate.copernicus.eu/#!/home) hosted by the [Copernicus Climate Change Service (C3S)](https://cds.climate.copernicus.eu/about-c3s) for retrieval of climate data.
 
 <img align="right" width="300" src="inst/extdata/KrigRLogo.png" />

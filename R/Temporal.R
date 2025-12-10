@@ -21,6 +21,53 @@ Make.UTC <- function(DatesVec = NULL) {
              }))
   )
 }
+
+### Helper ====
+complete_months_split <- function(DateStart, DateStop, TChunkSize, BaseTStep = 24){
+
+  month_chunksize <- max(c(round(TChunkSize / 730),1)) # convert from number of hours per month to number of months
+
+  months_vec <- seq(
+    from = as.Date(format(DateStart, "%Y-%m-01")),
+    to   = as.Date(format(DateStop, "%Y-%m-01")),
+    by   = "month"
+  )
+
+  # Split into yearly buckets
+  years <- unique(format(months_vec, "%Y"))
+  year_list <- lapply(years, function(y) {
+    months_vec[format(months_vec, "%Y") == y]
+  })
+
+  # --- Apply same logic for months as was done for years ----
+  chunks_list <- lapply(year_list, function(months_in_year) {
+    # identify each month's index in that year (1..12)
+    month_index <- as.integer(format(months_in_year, "%m"))
+
+    # assign each month to a chunk of TChunkSize months
+    chunk_id <- ceiling(month_index / month_chunksize)
+
+    # create month chunks
+    split(months_in_year, chunk_id)
+  })
+
+  # flatten out
+  QueryTimeWindows <- unlist(chunks_list, recursive = FALSE)
+
+  # --- Expand each month to 24 * days(month) entries of first day-of-month ---
+  QueryTimeWindows <- lapply(QueryTimeWindows, function(month_group) {
+
+    x <- unlist(lapply(month_group, function(m) {
+      # number of days in month m
+      dim <- as.integer(format((m + months(1)) - 1, "%d"))
+
+      # produce 24 * dim copies of first day of month, as Date
+      rep(m, BaseTStep * dim)
+    }))
+   return(as.Date(x))
+  })
+  return(QueryTimeWindows)}
+
 ### QUERY SEPARATING INTO TIME WINDOWS =========================================
 #' Creating time windows for CDS queries
 #'
@@ -125,11 +172,13 @@ Make.RequestWindows <- function(Dates_df, BaseTResolution, BaseTStep, BaseTStart
     }
   }
 
-  # Build request date sequence for hourly case
-  T_RequestRange <- seq(from = DateStart, to = DateStop, by = BaseTResolution)
-  T_RequestDates <- as.Date(rep(unique(format(T_RequestRange, "%Y-%m-%d")), each = BaseTStep))
+  QueryTimeWindows <- complete_months_split(DateStart, DateStop, TChunkSize, length(QueryTimes))
 
-  QueryTimeWindows <- split(T_RequestDates, ceiling(seq_along(T_RequestDates) / TChunkSize))
+  # Build request date sequence for hourly case
+  # T_RequestRange <- seq(from = DateStart, to = DateStop, by = BaseTResolution)
+  # T_RequestDates <- as.Date(rep(unique(format(T_RequestRange, "%Y-%m-%d")), each = BaseTStep))
+  #
+  # QueryTimeWindows <- split(T_RequestDates, ceiling(seq_along(T_RequestDates) / TChunkSize))
 
   return(list(QueryTimeWindows = QueryTimeWindows, QueryTimes = QueryTimes))
 }

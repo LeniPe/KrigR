@@ -4,20 +4,30 @@
 \alias{Execute.Requests}
 \title{Execute CDS Requests}
 \usage{
-Execute.Requests(Requests_ls, Dir, API_User, API_Key, TryDown, verbose = TRUE)
+Execute.Requests(
+  Requests_ls,
+  Dir,
+  API_User,
+  API_Key,
+  TryDown,
+  verbose = TRUE,
+  DEDL = FALSE
+)
 }
 \arguments{
 \item{Requests_ls}{List. ecmwfr-ready CDS requests formed with \code{\link{Make.Request}}.}
 
 \item{Dir}{Character. Directory where to save raw data.}
 
-\item{API_User}{Character. CDS API User}
+\item{API_User}{Character. CDS API User or DEDL User.}
 
-\item{API_Key}{Character. CDS API Key}
+\item{API_Key}{Character. CDS API Key or DEDL password.}
 
 \item{TryDown}{Numeric. How often to retry a failing request/download}
 
 \item{verbose}{Logical. Whether to print/message function progress in console or not.}
+
+\item{DEDL}{Logical. Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.}
 }
 \value{
 No R object. Resulting files of CDS query/queries in signated directory.

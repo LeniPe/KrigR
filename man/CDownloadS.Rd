@@ -29,7 +29,8 @@ CDownloadS(
   Cores = 1,
   verbose = TRUE,
   Keep_Raw = FALSE,
-  closeConnections = TRUE
+  closeConnections = TRUE,
+  DEDL = FALSE
 )
 }
 \arguments{
@@ -65,9 +66,9 @@ CDownloadS(
 
 \item{Compression}{Integer between 1 to 9. Applied to final .nc file that the function writes to hard drive. Same as compression argument in terra::writeCDF(). Ignored if FileExtension = ".tif".}
 
-\item{API_User}{Character; ECMWF cds user number.}
+\item{API_User}{Character; ECMWF cds user number. IF DEDL, use DEDL username.}
 
-\item{API_Key}{Character; ECMWF cds API key.}
+\item{API_Key}{Character; ECMWF cds API key. If DEDL, use DEDL password.}
 
 \item{TryDown}{Optional, numeric. Legacy, ignored when querying data from new CDS (https://cds-beta.climate.copernicus.eu/; this happens when the package version of ecmwfr is >= 2.0.0). How often to attempt the download of each individual file that the function queries from the CDS. This is to circumvent having to restart the entire function when encountering connectivity issues.}
 
@@ -82,6 +83,8 @@ CDownloadS(
 \item{Keep_Raw}{Logical. Whether to retain raw downloaded data or not. Default is FALSE.}
 
 \item{closeConnections}{Logical. Whether to close all connections at the end of function execution. When executing this function often after another, this can be very useful to avoid errors.}
+
+\item{DEDL}{Logical. Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.}
 }
 \value{
 A SpatRaster object containing the downloaded, cropped/masked, and subsequently temporally aggregated data, and a file (either .nc or .tif) in the specified directory.

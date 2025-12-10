@@ -17,7 +17,8 @@ Make.Request(
   API_User,
   API_Key,
   TimeOut = 36000,
-  FIterStart = 1
+  FIterStart = 1,
+  DEDL = FALSE
 )
 }
 \arguments{
@@ -39,13 +40,15 @@ Make.Request(
 
 \item{verbose}{Logical. Whether to print/message function progress in console or not.}
 
-\item{API_User}{Character. CDS API User}
+\item{API_User}{Character. CDS API User or DEDL User.}
 
-\item{API_Key}{Character. CDS API Key}
+\item{API_Key}{Character. CDS API Key or DEDL password.}
 
 \item{TimeOut}{Numeric. Legacy, ignored when querying data from new CDS (https://cds-beta.climate.copernicus.eu/; this happens when the package version of ecmwfr is >= 2.0.0). The timeout for each download in seconds. Default 36000 seconds (10 hours).}
 
 \item{FIterStart}{Numeric. Meant for consistent file numbering in multi-chunk requesting.}
+
+\item{DEDL}{Logical.  Use Destination Earth Data Lake (DEDL) instead of CDS. Default is FALSE.}
 }
 \value{
 List. Each element holding either (1) a list object representing a CDS request or (2) the value NA indicating that a file of this name is already present.

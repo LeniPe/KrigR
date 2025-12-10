@@ -14,7 +14,9 @@ Temporal.Aggr(
   Cores,
   QueryTargetSteps,
   TZone,
-  verbose = TRUE
+  verbose = TRUE,
+  aggregation_needed = FALSE,
+  Dir = getwd()
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ Temporal.Aggr(
 \item{TZone}{Character. Time zone for queried data.}
 
 \item{verbose}{Logical. Whether to print/message function progress in console or not.}
+
+\item{aggregation_needed}{Logical. Force aggregation even if BaseResolution/TStep match}
+
+\item{Dir}{Character.}
 }
 \value{
 A SpatRaster

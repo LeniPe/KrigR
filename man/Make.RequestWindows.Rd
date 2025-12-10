@@ -9,8 +9,7 @@ Make.RequestWindows(
   BaseTResolution,
   BaseTStep,
   BaseTStart,
-  TChunkSize,
-  DataSet
+  TChunkSize
 )
 }
 \arguments{
@@ -23,8 +22,6 @@ Make.RequestWindows(
 \item{BaseTStart}{POSIXct. Base starting date and time of queried data on CDS}
 
 \item{TChunkSize}{Numeric. Maximum amount of layers to include in each query}
-
-\item{DataSet}{Character. Name of data set. Usually a set of words separated by dashes. See possible datasets by calling \code{\link{Meta.List}}.}
 }
 \value{
 List. Contains:

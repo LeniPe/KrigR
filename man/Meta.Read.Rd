@@ -5,7 +5,8 @@
 \title{Data set overview}
 \usage{
 Meta.Read(
-  URL = "https://raw.githubusercontent.com/ErikKusch/KrigR/Development/metadata",
+  URL =
+    "https://raw.githubusercontent.com/Senckenberg-DCBiodivIT/KrigR/add-alternative-data-source-DEDL/metadata/",
   dataset = "reanalysis-era5-land"
 )
 }

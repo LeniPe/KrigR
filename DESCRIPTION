@@ -1,17 +1,15 @@
 Package: KrigR
 Type: Package
-Title: Downloading, Aggregating, and Kriging of ECMWF CDS-Data
-Version: 0.9.6.6
-Authors@R: as.person(c(
-    "Erik Kusch <erik@i-solution.de> [aut, cre]", 
-    "Richard Davy <Richard.Davy@nersc.no> [aut]"
-  ))
-Description: An R Package for downloading, preprocessing, and statistical downscaling of data provided by the European Centre for Medium‐Range Weather Forecasts (ECMWF).
-    KrigR contains functions for:
-    - Downloading ECMWF data directly from within R
-    - Downloading USGS GMTED 2010 and HWSD elevation data
-    - Preparing covariate data for Kriging
-    - Kriging spatial input to desired output using user-specified covariates
+Title: Downloading, Aggregating, and Kriging of ECMWF CDS-Data (Modified)
+Version: 0.9.6.6.9001
+Authors@R: c(
+  person(given = "Erik", family = "Kusch", email = "erik@i-solution.de", role = c("aut", "cre")),
+  person("Richard", "Davy", email = "Richard.Davy@nersc.no", role = "aut"),
+  person("Lena", "Perzlmaier", role="ctb")
+  )
+Description: Modified fork of KrigR for project-specific features, especially, 
+  adding access to Destination Earth Data Lake (DEDL) as alternative data source for ERA5 data. 
+  Be carefull, when reusing, the changes likely broke existing functionalities.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -34,5 +32,8 @@ Imports:
     ggplot2,
     viridis,
     cowplot,
-    reticulate
+    reticulate,
+    methods,
+    future,
+    future.apply
 Depends: R (>= 4.0.0) 

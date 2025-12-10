@@ -236,7 +236,7 @@ Execute.Requests <- function(Requests_ls, Dir, API_User, API_Key, TryDown, verbo
 
     if (DEDL) {
       filename <- Requests_ls[[requestID]]$target
-      DEDL.download(API_request, filename, API_User, API_Key)
+      DEDL.download(API_request, filename, API_User, API_Key, Dir, TryDown)
     }
 
     ## old CDS

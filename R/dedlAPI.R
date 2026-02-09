@@ -17,7 +17,8 @@ DEDL.httr_status_check <- function(API_request){
   }
 }
 
-DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5) {
+DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5, verbose = TRUE) {
+  if (verbose) message("GET ", url)
   attempt <- 1
   repeat {
     tryCatch({
@@ -26,7 +27,24 @@ DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5) {
       return(resp)
     }, error = function(e) {
       if (attempt >= max_retries) stop(e)
-      message(sprintf("GET failed (attempt %d/%d): %s", attempt, max_retries, e$message))
+      message(sprintf("GET attempt %d/%d failed: %s", attempt, max_retries, e$message))
+      Sys.sleep(retry_delay * attempt)  # exponential backoff
+      attempt <<- attempt + 1
+    })
+  }
+}
+
+DEDL.safe_post <- function(url, ..., max_retries = 5, retry_delay = 5) {
+  message("POST ", url)
+  attempt <- 1
+  repeat {
+    tryCatch({
+      resp <- httr::POST(url, ...)
+      DEDL.httr_status_check(resp)
+      return(resp)
+    }, error = function(e) {
+      if (attempt >= max_retries) stop(e)
+      message(sprintf("POST attempt %d/%d failed: %s", attempt, max_retries, e$message))
       Sys.sleep(retry_delay * attempt)  # exponential backoff
       attempt <<- attempt + 1
     })
@@ -100,7 +118,7 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
       body$day <- NULL
     }
 
-    API_request <- httr::POST(
+    API_request <- DEDL.safe_post(
       url = stac_order_url,
       body = body,
       encode = "json",

@@ -88,7 +88,7 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
       )
 
       res <- DEDL.safe_get(
-        url = "https://hda.data.destination-earth.eu/stac/v2/search",
+        url = stac_search_url,
         query = query,
         auth_headers
       )
@@ -126,9 +126,6 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
     )
 
     DEDL.httr_status_check(API_request)
-    cat("Request URL: ", httr::url(API_request), "\n")
-    cat("Request Body:\n")
-    cat(jsonlite::toJSON(body, pretty = TRUE, auto_unbox = TRUE), "\n")
 
     Requests_ls[[requestID]]$API_request <- API_request
   }
@@ -142,7 +139,7 @@ DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getw
   self_url = ordered_item$links$href[ordered_item$links$rel == "self"]
   spinner <- c(".", "..", "...", "....", ".....")
   repeat {
-    item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown)
+    item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown, verbose = FALSE)
     DEDL.httr_status_check(item_response)
     item_data <- httr::content(item_response, as = "parsed", type = "application/json")
     order_status <- item_data$properties[["order:status"]]
@@ -184,7 +181,7 @@ DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getw
       file.path(dirname(FNAME), basename(FNAME))
     ) # make into zip
     unlink(paste0(FNAME, ".zip"))
-    warning("CDS download seems to have produced a .zip file. KrigR has automatically extracted data from this file. This is currently an experimental fix.")
+    message("Extracted .zip file.")
   }
   print(paste0(FNAME, ' was successfully downloaded'))
 }

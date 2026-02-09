@@ -87,16 +87,17 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
     stac_order_url = paste0(stac_url, "collections/", dedl_dataset, "/order")
 
     body <- list(
-      `ecmwf:variable` = request$variable,
-      `ecmwf:month` = request$month,
-      `ecmwf:year` = request$year,
-      `ecmwf:day` = request$day,
-      `ecmwf:download_format` = request$format,
-      `ecmwf:product_type` = request$product_type,
-      `ecmwf:time` = request$time
+      `variable` = list(request$variable),
+      `month` = request$month,
+      `year` = list(request$year),
+      `day` = request$day,
+      `download_format` = "zip",
+      `data_format`= "grib",
+      `product_type` = list(request$product_type),
+      `time` = request$time
     )
     if (grepl("month", request$product_type)){
-      body$`ecmwf:day` <- NULL
+      body$day <- NULL
     }
 
     API_request <- httr::POST(

@@ -17,8 +17,7 @@ DEDL.httr_status_check <- function(API_request){
   }
 }
 
-DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5, verbose = TRUE) {
-  if (verbose) message("GET ", url)
+DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5) {
   attempt <- 1
   repeat {
     tryCatch({
@@ -35,7 +34,6 @@ DEDL.safe_get <- function(url, ..., max_retries = 5, retry_delay = 5, verbose = 
 }
 
 DEDL.safe_post <- function(url, ..., max_retries = 5, retry_delay = 5) {
-  message("POST ", url)
   attempt <- 1
   repeat {
     tryCatch({
@@ -120,7 +118,7 @@ DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getw
   self_url = ordered_item$links$href[ordered_item$links$rel == "self"]
   spinner <- c(".", "..", "...", "....", ".....")
   repeat {
-    item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown, verbose = FALSE)
+    item_response <- DEDL.safe_get(self_url, auth_headers, max_retries = TryDown)
     DEDL.httr_status_check(item_response)
     item_data <- httr::content(item_response, as = "parsed", type = "application/json")
     order_status <- item_data$properties[["order:status"]]
@@ -142,7 +140,6 @@ DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getw
   }
 
   asset_url <- item_data$assets$downloadLink$href
-  print(paste0("Download link: ", asset_url))
   FNAME <- file.path(Dir, filename)
 
   file_response <- DEDL.safe_get(asset_url, auth_headers, httr::write_disk(FNAME, overwrite = TRUE), max_retries = TryDown)
@@ -162,7 +159,6 @@ DEDL.download <- function(API_request, filename, DEDL_User, DEDL_Pwd, Dir = getw
       file.path(dirname(FNAME), basename(FNAME))
     ) # make into zip
     unlink(paste0(FNAME, ".zip"))
-    message("Extracted .zip file.")
   }
   print(paste0(FNAME, ' was successfully downloaded'))
 }

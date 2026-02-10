@@ -55,7 +55,7 @@ valid_days <- function(QueryTimeWindow) {
   end <- seq(max_date, by = "month", length.out = 2)[2] - 1
 
   # Return unique day numbers as integers
-  unique(as.integer(format(seq(start, end, by = "day"), "%d")))
+  unique(format(seq(start, end, by = "day"), "%d"))
 }
 
 name_based_on_dates <- function(Requests_ls){
@@ -120,7 +120,6 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
   #' Make list of CDS Requests
   Requests_ls <- lapply(1:length(QueryTimeWindows), FUN = function(requestID) {
     FName <- paste("TEMP", QueryVariable, stringr::str_pad(FIterStart + requestID - 1, 5, "left", "0"), sep = "_")
-    if (grepl("month", QueryType) || !DEDL) { # monthly data needs to be specified with year, month fields
       list(
         "dataset_short_name" = QueryDataSet,
         "product_type" = QueryType,
@@ -133,23 +132,6 @@ Make.Request <- function(QueryTimeWindows, QueryDataSet, QueryType, QueryVariabl
         "format" = QueryFormat,
         "target" = FName
       )
-
-      } else if (DEDL) {
-        list(
-          "dataset_short_name" = QueryDataSet,
-          "product_type" = QueryType,
-          "variable" = QueryVariable,
-          "datetime" = paste0(
-            format(head(QueryTimeWindows[[requestID]], n = 1), "%Y-%m-01T00:00:00Z"),
-            "/",
-            format(lubridate::ceiling_date(tail(QueryTimeWindows[[requestID]], n = 1), "month") - 1, "%Y-%m-%dT23:00:00Z")
-          ),
-          "time" = QueryTimes,
-          "area" = QueryExtent,
-          "format" = QueryFormat,
-          "target" = FName
-        )
-      }
   })
   ## making list names useful for request execution updates to console
   Iterators <- paste0("[", (1:length(Requests_ls)) + (FIterStart - 1), "/", length(Requests_ls) + (FIterStart - 1), "] ")

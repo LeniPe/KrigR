@@ -77,37 +77,12 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
     cds_dataset = request$dataset_short_name
     dedl_dataset = DEDL.dataset_map(cds_dataset)
 
-    if ("datetime" %in% names(request)) {
-      stac_search_url = "https://hda.data.destination-earth.eu/stac/v2/search"
-
-      # Build query list
-      query <- list(
-        datetime = request$datetime,
-        collections = dedl_dataset
-        #bbox = paste(request$area, collapse = ",")
-      )
-
-      res <- DEDL.safe_get(
-        url = stac_search_url,
-        query = query,
-        auth_headers
-      )
-      DEDL.httr_status_check(res)
-
-      content_list <- jsonlite::fromJSON(httr::content(res, "text", encoding = "UTF-8"))
-      links_df <- content_list$features$links[[1]]
-      retrieve_row <- links_df[links_df$rel == "retrieve", ]
-      props <- content_list$features$properties
-      request$year <- unlist(retrieve_row$body$year)
-      request$month <- unlist(retrieve_row$body$month)
-      request$day <- unlist(retrieve_row$body$day)
-    }
     stac_order_url = paste0(stac_url, "collections/", dedl_dataset, "/order")
 
     body <- list(
       `variable` = list(request$variable),
       `month` = request$month,
-      `year` = list(request$year),
+      `year` = request$year,
       `day` = request$day,
       `download_format` = "zip",
       `data_format`= "grib",
@@ -116,7 +91,13 @@ DEDL.order<- function(Requests_ls, API_Key, API_User, verbose = TRUE,
     )
     if (grepl("month", request$product_type)){
       body$day <- NULL
+      body$year <- list(request$year)
     }
+
+    if (is.na(request$product_type)) {
+      body$product_type <- NULL
+    }
+
 
     API_request <- DEDL.safe_post(
       url = stac_order_url,

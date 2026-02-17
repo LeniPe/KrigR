@@ -164,6 +164,13 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
                        closeConnections = TRUE,
                        DEDL = FALSE) {
 
+  log_mem <- function(step="") {
+    cat("\n==== MEMORY STATUS:", step, "====\n")
+    system("free -h")
+    cat("\n")
+  }
+
+  log_mem("start")                        
   aggregation_needed <- FALSE
   if (DEDL &&
       DataSet == "reanalysis-era5-land-monthly-means" &&
@@ -462,12 +469,16 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
     CDS_rast <- terra::rast(filename = file.path(Dir, FileName))
   }
   if (FileExtension == ".nc") {
-    CDS_rast <- Meta.NC(
-      NC = CDS_rast, FName = file.path(Dir, FileName),
-      Attrs = Meta_vec, Write = TRUE,
-      Compression = Compression
-    )
-    terra::time(CDS_rast) <- as.POSIXct(terra::time(CDS_rast), tz = TZone) # assign the correct time zone, when loading from disk, time zone is set to UTC
+    log_mem("before writing to disk")
+    ## Writing metadata
+    writeCDF(x = CDS_rast, filename = file.path(Dir, FileName), compression = Compression)
+    log_mem("after writing to disk")
+    nc <- nc_open(file.path(Dir, FileName), write = TRUE)
+    for (name in names(Meta_vec)) {
+      ncatt_put(nc, 0, name, Meta_vec[[name]])
+    }
+    nc_close(nc)
+    log_mem("after writing metadata to disk")
   }
 
   ### unlink temporary files
@@ -476,10 +487,12 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   }
   moreTempFs <- list.files(Dir, pattern = '^TEMP_aggr_chunk')
   unlink(moreTempFs)
+  log_mem("after deleting temporary files")
 
   ### return object
   if (closeConnections) {
     closeAllConnections()
   }
+  log_mem("end of function")
   return(CDS_rast)
 }

@@ -89,7 +89,7 @@ BioClim <- function(
     Water_DataSet = "reanalysis-era5-land-monthly-means",
     Water_Type = "monthly_averaged_reanalysis",
     Y_start, Y_end, TZone = "UTC", # time-window, default set to range of dataset-type
-    Extent, # spatial limitation, default set to range of dataset-type
+    Extent = NULL, # spatial limitation, default set to range of dataset-type
     Buffer = 0.5, # point buffering if desired
     Dir = getwd(), FileName, FileExtension = ".nc", Compression = 9, # file storing
     API_User, API_Key, # API credentials

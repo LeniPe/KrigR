@@ -152,7 +152,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
                        Type = NA, # type of data set
                        DateStart, DateStop, TZone = "UTC", # time-window, default set to range of dataset-type
                        TResolution = "month", TStep = 1, FUN = "mean", # temporal aggregation
-                       Extent, # spatial limitation, default set to range of dataset-type
+                       Extent = NULL, # spatial limitation, default set to range of dataset-type
                        Buffer = 0.5, # point buffering if desired
                        Dir = getwd(), FileName, FileExtension = ".nc", Compression = 9, # file storing
                        API_User, API_Key, # API credentials
@@ -250,7 +250,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
 
   #--- Extent resolving; formatting as SpatExtent object
   NoSpatialFlag <- FALSE
-  if (missing(Extent)) {
+  if (is.null(Extent)) {
     Extent <- ext(Meta.QuickFacts(dataset = DataSet)$CDSArguments$area)
     NoSpatialFlag <- TRUE
   } ## assign maximum extent for dataset if not specified

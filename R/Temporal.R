@@ -389,6 +389,7 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
     }
   }
   # --- Assign timestamps to aggregated layers ---
+  print(Final_rast)
   if (verbose) message("Assigning time dimension to aggregated raster")
 
   if (TResolution == "year") {
@@ -416,6 +417,7 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
     )
   }
   if (verbose) message("Temporal aggregation done")
+  print(Final_rast)
   return(Final_rast)
 }
 

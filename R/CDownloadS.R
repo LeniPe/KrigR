@@ -452,7 +452,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
     }
     CDS_rast <- Handle.Spatial(CDS_rast, Extent)
   }
-
+  print(CDS_rast)
   ## Exports =================================
   if (verbose) {
     message("###### Data Export & Return")

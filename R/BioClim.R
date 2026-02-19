@@ -245,9 +245,11 @@ BioClim <- function(
       DEDL = DEDL,
       writeFileFlag = FALSE
     )
+    print(Raw_rast)
     Raw_rast
   })
 
+  print(Raw_data)
   ## Data Processing ===============
   message("###### Prcoessing raw data ######")
   #--- Month summaries

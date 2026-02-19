@@ -292,6 +292,9 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
   if (verbose) message("Temporal Aggregation started")
 
   times <- terra::time(CDS_rast)
+  if (any(is.na(times))) warning("Temperature raster has NA time values!")
+  if (length(unique(times)) != length(times)) warning("Temperature raster has duplicate times!")
+
   if (aggregation_needed) {
     if (verbose) message("Applying hourly → monthly aggregation")
     month_index <- format(times, "%Y%m")
@@ -327,7 +330,7 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
     # Each source file becomes a chunk
     rast_infos <- lapply(seq_along(src_files), function(i) {
       list(
-        name = paste0("aggr_chunk_", i),
+        name = paste0("aggr_chunk_", TResolution, "_", i),
         src_file = src_files[i]
       )
     })
@@ -341,8 +344,11 @@ Temporal.Aggr <- function(CDS_rast, BaseResolution, BaseStep,
         r_sub <- terra::rast(rast_info$src_file)
         times_sub <- terra::time(r_sub)
         if (TResolution == "month"){
-          AggrIndex_sub <- (lubridate::year(times_sub) - lubridate::year(times_sub[1])) * 12 +
-            lubridate::month(times_sub) - lubridate::month(times_sub[1]) + 1
+          if (any(is.na(times_sub))) warning("NA timestamps in ", rast_info$src_file)
+          if (length(unique(format(times_sub, "%Y-%m"))) != 1) {
+            stop(rast_info$src_file, " does not cover a single month!")
+          }
+          AggrIndex_sub <- rep(1, terra::nlyr(r_sub))
         } else {
           TimeDiff_sub <- as.numeric(difftime(times_sub, times_sub[1], units = TResolution))
           AggrIndex_sub <- floor(TimeDiff_sub / TStep) + 1

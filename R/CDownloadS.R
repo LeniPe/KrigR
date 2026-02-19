@@ -162,7 +162,8 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
                        verbose = TRUE, # verbosity
                        Keep_Raw = FALSE,
                        closeConnections = TRUE,
-                       DEDL = FALSE) {
+                       DEDL = FALSE,
+                       writeFileFlag = TRUE) {
 
   log_mem <- function(step="") {
     cat("\n==== MEMORY STATUS:", step, "====\n")
@@ -464,6 +465,7 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   terra::metags(CDS_rast) <- Meta_vec
 
   ### write file
+  if (writeFileFlag) {
   if (FileExtension == ".tif") {
     terra::writeRaster(CDS_rast, filename = file.path(Dir, FileName))
     CDS_rast <- terra::rast(filename = file.path(Dir, FileName))
@@ -485,9 +487,12 @@ CDownloadS <- function(Variable = NULL, # which variable # nolint: cyclocomp_lin
   if (!Keep_Raw) {
     unlink(TempFs)
   }
-  moreTempFs <- list.files(Dir, pattern = '^TEMP_aggr_chunk')
+    moreTempFs <- list.files(Dir, pattern = "^TEMP_aggr_chunk")
   unlink(moreTempFs)
   log_mem("after deleting temporary files")
+  } else {
+    print("writeFileFlag is set to FALSE, so no file is written to disk.")
+  }
 
   ### return object
   if (closeConnections) {

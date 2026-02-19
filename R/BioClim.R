@@ -242,7 +242,8 @@ BioClim <- function(
       verbose = verbose,
       Keep_Raw = FALSE,
       closeConnections = closeConnections,
-      DEDL = DEDL
+      DEDL = DEDL,
+      writeFileFlag = FALSE
     )
     Raw_rast
   })
